@@ -39,7 +39,6 @@ const enviarNotificacao = async (formattedData) => {
 🕒 Data: ${formattedDataCriacao}
 📍 Endereço: ${formattedData.endereco_logradouro}, ${formattedData.endereco_numero}
 💰 Multa: R$ ${formattedData.valor_notificacao}
-⏳ Tempo: ${formattedData.tempo_notificacao || 'Não disponível'}
     `;
 
     const data = JSON.stringify({
@@ -161,10 +160,10 @@ const consultaNotificacoes = async () => {
     }
 };
 
-// Configura a consulta a cada 10 segundos
+// Configura a consulta a cada 30 segundos
 setInterval(() => {
     consultaNotificacoes();
-}, 10000);
+}, 30000);
 
 
 // Inicia o servidor
