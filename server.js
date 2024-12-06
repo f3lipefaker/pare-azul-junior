@@ -4,6 +4,8 @@ import cors from 'cors';
 import http from 'http';
 import { config as dotenvConfig } from 'dotenv';
 import axios from 'axios';
+import db from './src/functions/db.js';
+import tables from './src/utils/tables.js';
 
 dotenvConfig();
 
@@ -11,21 +13,9 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') {
-        res.sendStatus(200);
-    } else {
-        next();
-    }
-});
-
 const TOKEN = process.env.TOKEN;
 const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
-
 
 const formatData = (data) => {
     const date = new Date(data);
@@ -39,28 +29,23 @@ const formatData = (data) => {
     return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
 };
 
-
 const enviarNotificacao = async (formattedData) => {
-
     const formattedDataCriacao = formatData(formattedData.data_criacao);
 
     const formattedText = `
 📋 Placa do Veículo: *${formattedData.veiculo_placa}*
 🛠️ Marca e Modelo: *${formattedData.veiculo_marca_modelo}*
-❌ Estado: ${formattedData.estado}
-🕒 Data de Criação: ${formattedDataCriacao}
+❔ Estado: ${formattedData.estado}
+🕒 Data: ${formattedDataCriacao}
 📍 Endereço: ${formattedData.endereco_logradouro}, ${formattedData.endereco_numero}
-💰 Valor da Notificação: R$ ${formattedData.valor_notificacao}
-🕒 Tempo da Notificação: ${formattedData.tempo_notificacao || 'Não disponível'}
-🖼️ Imagens: ${formattedData.imagens}
+💰 Multa: R$ ${formattedData.valor_notificacao}
+⏳ Tempo: ${formattedData.tempo_notificacao || 'Não disponível'}
     `;
-
-    //     Latitude: ${formattedData.latitude}
-    // Longitude: ${formattedData.longitude}
 
     const data = JSON.stringify({
         "destination": "120363374433640025@g.us",
-        "data": formattedText.trim()
+        "data": formattedText.trim(),
+        "imageUrl": `${formattedData.imagens}`
     });
 
     const config = {
@@ -103,12 +88,11 @@ const consultaNotificacoes = async () => {
         const response = await axios.request(config);
 
         if (response.data.resultado && response.data.resultado.length > 0) {
-            // Filtra notificações com estado "CANCELADA"
-            const notificacoes = response.data.resultado.filter(item => item.estado === 'CANCELADA');
-            console.log(`Notificações CANCELADAS: ${notificacoes.length}`);
+            const notificacoes = response.data.resultado;
 
             for (const notificacao of notificacoes) {
                 const formattedData = {
+                    id_notification: notificacao.id,
                     veiculo_placa: notificacao.veiculo_placa,
                     veiculo_marca_modelo: notificacao.veiculo_marca_modelo,
                     estado: notificacao.estado,
@@ -122,14 +106,52 @@ const consultaNotificacoes = async () => {
                     longitude: notificacao.longitude,
                     imagens: notificacao.imagens && notificacao.imagens.length > 0
                         ? notificacao.imagens.map(image => image.uri).join(', ')
-                        : 'Sem imagens',  // Verifica se existem imagens, senão coloca 'Sem imagens'
+                        : 'Sem imagens',
                 };
 
-                // Exibe os dados formatados antes de enviar
-                //console.log('Enviando Notificação:', formattedData);
+                // Verifica no banco de dados se o status da notificação mudou
+                const existingNotification = await db.SELECT(tables.cad_plate.schema, {
+                    [tables.cad_plate.columns.id_notification]: notificacao.id
+                });
 
-                // Enviar a notificação de forma sequencial
-                await enviarNotificacao(formattedData);
+                if (existingNotification.length > 0) {
+                    const dbStatus = existingNotification[0][tables.cad_plate.columns.status];
+
+                    if (dbStatus !== notificacao.estado) {
+                        // Atualiza o status no banco
+                        await db.UPDATE(tables.cad_plate.schema, {
+                            [tables.cad_plate.columns.status]: notificacao.estado,
+                        }, {
+                            [tables.cad_plate.columns.id_notification]: notificacao.id
+                        });
+
+                        // Define o ícone baseado no estado
+                        const statusIcon = notificacao.estado === 'ABERTA' ? '⭕' :
+                            notificacao.estado === 'CANCELADA' ? '❌' : '✅';
+
+                        // Altera o texto do estado com o ícone
+                        formattedData.estado = `${statusIcon} ${notificacao.estado}`;
+
+                        // Envia a notificação de status alterado
+                        await enviarNotificacao(formattedData);
+                    }
+                } else {
+                    // Insere nova notificação no banco
+                    await db.INSERT(tables.cad_plate.schema, {
+                        [tables.cad_plate.columns.id_notification]: notificacao.id,
+                        [tables.cad_plate.columns.status]: notificacao.estado,
+                    });
+
+                    // Define o ícone baseado no estado
+                    const statusIcon = notificacao.estado === 'ABERTA' ? '⭕' :
+                        notificacao.estado === 'CANCELADA' ? '❌' : '✅';
+
+                    // Altera o texto do estado com o ícone
+                    formattedData.estado = `${statusIcon} ${notificacao.estado}`;
+
+                    // Envia a notificação
+                    await enviarNotificacao(formattedData);
+                }
             }
         } else {
             console.log('Nenhuma notificação encontrada.');
@@ -139,13 +161,11 @@ const consultaNotificacoes = async () => {
     }
 };
 
-// Chama a consulta inicial
-consultaNotificacoes();
-
 // Configura a consulta a cada 10 segundos
 setInterval(() => {
     consultaNotificacoes();
-}, 10000); // 10000 ms = 10 segundos
+}, 10000);
+
 
 // Inicia o servidor
 server.listen(PORT, () => {

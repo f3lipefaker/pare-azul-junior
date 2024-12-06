@@ -1,4 +1,4 @@
-import { pool } from '../../server.js';
+import { pool } from '../utils/index.js';
 import tables from '../utils/tables.js';
 
 async function SELECT(table, queryParams) {
