@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pare-azul
+  namespace: viptech
+  labels:
+    app: pare-azul
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pare-azul
+  template:
+    metadata:
+      labels:
+        app: pare-azul
+    spec:
+      containers:
+        - name: pare-azul
+          image: juca266/pare-azul:latest
+          ports:
+            - containerPort: 4000
+          env:
+            - name: TZ
+              value: America/Sao_Paulo
+          volumeMounts:
+            - name: tz-config
+              mountPath: /etc/localtime
+              readOnly: true
+      volumes:
+        - name: tz-config
+          hostPath:
+            path: /etc/localtime

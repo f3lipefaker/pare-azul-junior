@@ -11,6 +11,7 @@
   },
   "scripts": {
     "start": "node server.js",
+    "update": "bash publish/update.sh",
     "dev": "nodemon server.js"
   },
   "name": "backend",
