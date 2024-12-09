@@ -42,7 +42,7 @@ const enviarNotificacao = async (formattedData) => {
     `;
 
     const data = JSON.stringify({
-        "destination": "120363374433640025@g.us",
+        "destination": "120363356974119067@g.us",
         "data": formattedText.trim(),
         "imageUrl": `${formattedData.imagens}`
     });
@@ -66,7 +66,7 @@ const enviarNotificacao = async (formattedData) => {
 };
 
 const consultaNotificacoes = async () => {
-    const placas = ["BAM5913", "PVR8G33", "RUR1I46", "RUU5E24", "RUU5E25", "SEO0J85", "SER5A47"];
+    const placas = ["BES6G80", "FBA3F85"];
     const estados = ['TOLERANCIA', 'ABERTA', 'PAGA', 'CANCELADA'];  // Filtra pelos estados
 
     const data = JSON.stringify({
