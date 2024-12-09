@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pare-azul
+  name: pare-azul-junior
   namespace: viptech
   labels:
-    app: pare-azul
+    app: pare-azul-junior
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: pare-azul
+      app: pare-azul-junior
   template:
     metadata:
       labels:
-        app: pare-azul
+        app: pare-azul-junior
     spec:
       containers:
-        - name: pare-azul
-          image: juca266/pare-azul:latest
+        - name: pare-azul-junior
+          image: juca266/pare-azul-junior:latest
           ports:
             - containerPort: 4000
           env:

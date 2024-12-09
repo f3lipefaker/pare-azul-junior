@@ -1,4 +1,4 @@
-image="pare-azul" 
+image="pare-azul-junior" 
 namespace="viptech"
 
 echo "Removendo imagens anteriores..."
