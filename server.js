@@ -105,7 +105,7 @@ const consultaNotificacoes = async () => {
                     longitude: notificacao.longitude,
                     imagens: notificacao.imagens && notificacao.imagens.length > 0
                         ? notificacao.imagens.map(image => image.uri).join(', ')
-                        : 'Sem imagens',
+                        : '',
                 };
 
                 // Verifica no banco de dados se o status da notificação mudou
@@ -160,10 +160,37 @@ const consultaNotificacoes = async () => {
     }
 };
 
-// Configura a consulta a cada 30 segundos
+// Função para verificar se está dentro do horário de funcionamento (9h - 18h) e se é dia útil
+const verificarHorarioEDia = () => {
+    const agora = new Date();
+    const diaSemana = agora.getDay(); // 0 - Domingo, 1 - Segunda-feira, ..., 6 - Sábado
+    const hora = agora.getHours();
+    const minuto = agora.getMinutes();
+
+    // Verificar se é dia útil (segunda a sexta-feira)
+    const eDiaUtil = diaSemana >= 1 && diaSemana <= 5; // 1 = Segunda-feira, 5 = Sexta-feira
+
+    // Verificar se a hora está entre 9h e 18h
+    const dentroDoHorario = hora >= 9 && hora < 18;
+
+    // Apenas permite executar se for dia útil e dentro do horário
+    return eDiaUtil && dentroDoHorario;
+};
+
+// Função para consulta e envio de notificações com base no horário e dia
+const consultarNotificacoesNoHorarioCorreto = () => {
+    if (verificarHorarioEDia()) {
+        consultaNotificacoes();
+    } else {
+        console.log('Fora do horário de funcionamento ou não é dia útil.');
+    }
+};
+
+// Configura a consulta a cada 30 segundos, mas só executa dentro do horário e dia útil
 setInterval(() => {
-    consultaNotificacoes();
+    consultarNotificacoesNoHorarioCorreto();
 }, 30000);
+
 
 
 // Inicia o servidor
