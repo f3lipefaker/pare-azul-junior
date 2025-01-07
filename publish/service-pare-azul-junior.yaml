@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: service-pare-azul-junior
+  namespace: viptech
 spec:
   selector:
     app: pare-azul-junior
@@ -9,3 +10,4 @@ spec:
     - protocol: TCP
       port: 4000
       targetPort: 4000
+  type: NodePort
